@@ -1,0 +1,43 @@
+<mujoco model="Pendulum">
+
+    <default>
+        <!-- default colors and attributs for geoms, joints -->
+        <geom rgba=".8 .6 .4 0.8"/>
+    </default>
+
+    <asset>
+        <!-- textures, etc, background -->
+    </asset>
+
+
+    <worldbody>
+        <!-- light, kinda required -->
+        <light pos="1 1 1" dir="0 -1 -1" diffuse="1 1 1"/>
+
+
+        <!-- main section, contains bodies -->
+        <body pos="0 0 1">
+
+            <joint axis="1 0 0"/>
+
+            <!-- primitive geometry (hitbox) -->
+            <geom type="cylinder" size="0.3" fromto="0 0 0  0 0 1"/>
+
+            <!-- child body, connected via actuator, joint, etc set in the child -->
+            <body pos="0 0 1">
+
+                <joint axis="1 0 0" ref="45"/>
+
+                <!-- main geometry -->
+                <geom type="cylinder" size="0.3" fromto="0 0 0  0 0 1"/>
+
+                <!-- secondary geometry for the visual weight -->
+                <geom type="sphere" size="0.4" pos="0 0 1.3" density="5000"/>
+
+            </body>
+
+
+        </body>
+    </worldbody>
+
+</mujoco>

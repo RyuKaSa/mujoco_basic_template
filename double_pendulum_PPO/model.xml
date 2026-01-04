@@ -1,0 +1,59 @@
+<mujoco model="Pendulum">
+
+    <!-- use degrees explicitly, instead of radians -->
+    <compiler angle="degree"/>
+
+    <default>
+        <!-- default colors and attributs for geoms, joints -->
+        <geom rgba=".1 .6 .4 0.8"/>
+    </default>
+
+    <asset>
+        <!-- textures, etc, background -->
+    </asset>
+
+
+    <worldbody>
+        <!-- light, kinda required -->
+        <light pos="1 1 1" dir="0 -1 -1" diffuse="1 1 1"/>
+
+
+        <!-- main section, contains bodies -->
+        <body pos="0 0 1">
+
+            <!-- to physically limit the range of the motor -->
+            <joint name="pin" axis="1 0 0" limited="true" range="-180 180"/>
+
+            <!-- primitive geometry (hitbox) -->
+            <geom type="cylinder" size="0.3" fromto="0 0 0  0 0 1"/>
+
+            <!-- child body, connected via actuator, joint, etc set in the child -->
+            <body pos="0 0 1">
+
+                <!-- limit its range either side, to simulate hitbox against its own body -->
+                <joint axis="1 0 0" limited="true" range="-160 160"/>
+
+                <!-- main geometry -->
+                <geom type="cylinder" size="0.3" fromto="0 0 0  0 0 1"/>
+
+                <!-- secondary geometry for the visual weight -->
+                <geom type="sphere" size="0.4" pos="0 0 1.3"/>
+
+            </body>
+
+
+        </body>
+    </worldbody>
+
+    <!-- place all motors here, by referencing their names -->
+    <actuator>
+
+        <!-- actuator types are MOTOR, POSITION, VELOCITY, usually, use motor because torque output -->
+        <motor joint="pin" ctrlrange="-1 1" gear="100"/>
+        <!-- we use a normalized range even for spinning hinges, because otherwise, outputs get too high, and RL can't generalize -->
+        <!-- but physically, it should be ctrlrange="0 0" default if not RL context -->
+
+
+    </actuator>
+
+</mujoco>
