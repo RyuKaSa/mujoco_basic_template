@@ -25,7 +25,7 @@
       <geom rgba="0.15 0.15 0.15 0.9"/>
     </default>
     <default class="visual">
-      <geom contype="0" conaffinity="0"/>
+      <geom contype="0" conaffinity="0" mass="0"/>
     </default>
   </default>
 
@@ -197,14 +197,14 @@
   <keyframe>
     <!-- Hover state: drone at 1m altitude, level, all motors at hover thrust -->
     <!-- qpos: [x, y, z, qw, qx, qy, qz] for freejoint -->
-    <!-- Hover thrust per motor ≈ (mass * g) / 4 = (1.5 * 9.81) / 4 ≈ 3.68 -->
-    <key name="hover" qpos="0 0 1 1 0 0 0" ctrl="3.68 3.68 3.68 3.68"/>
+    <!-- Hover thrust per motor ≈ (mass * g) / 4 = (1.5 * 9.81) / 4 ≈ 4.08 -->
+    <key name="hover" qpos="0 0 1 1 0 0 0" ctrl="4.08 4.08 4.08 4.08"/>
     
     <!-- Ground start -->
     <key name="ground" qpos="0 0 0.1 1 0 0 0" ctrl="0 0 0 0"/>
     
     <!-- Tilted (for recovery training) -->
-    <key name="tilted" qpos="0 0 1 0.966 0.259 0 0" ctrl="3.68 3.68 3.68 3.68"/>
+    <key name="tilted" qpos="0 0 1 0.966 0.259 0 0" ctrl="4.08 4.08 4.08 4.08"/>
   </keyframe>
 
 </mujoco>
