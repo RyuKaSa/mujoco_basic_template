@@ -31,7 +31,7 @@ import numpy as np
 
 
 def mix(commands: np.ndarray, 
-        thrust_base: float = 4.08, 
+        thrust_base: float = 4.0712, 
         thrust_scale: float = 6.0,
         attitude_scale: float = 2.0) -> np.ndarray:
     """
