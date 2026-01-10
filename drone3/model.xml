@@ -1,0 +1,217 @@
+<mujoco model="DeliveryDrone_RL">
+  <!--
+    Delivery Drone for RL Training
+    - No external assets (license-free)
+    - Full yaw control via motor torque differentials
+    - Sensors organized for two-level control:
+        * State info (qpos/qvel) for low-level RL
+        * Explicit sensors for mid-level path planning
+    - Tuned for slow, stable flight (delivery drone character)
+  -->
+
+  <compiler autolimits="true"/>
+  
+  <option timestep="0.005" density="1.225" viscosity="1.8e-5" gravity="0 0 -9.81">
+    <flag warmstart="enable"/>
+  </option>
+
+  <!-- Visual defaults -->
+  <default>
+    <default class="drone">
+      <geom rgba="0.2 0.2 0.25 1"/>
+      <joint damping="0.001"/>
+    </default>
+    <default class="rotor">
+      <geom rgba="0.15 0.15 0.15 0.9"/>
+    </default>
+    <default class="visual">
+      <geom contype="0" conaffinity="0" mass="0"/>
+    </default>
+  </default>
+
+  <asset>
+    <!-- Simple procedural textures - no external files -->
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.35 0.35 0.35" rgb2="0.25 0.25 0.25" width="512" height="512"/>
+    <texture name="sky" type="skybox" builtin="gradient" rgb1="0.6 0.7 0.9" rgb2="0.2 0.3 0.5" width="512" height="512"/>
+    <material name="ground_mat" texture="grid" texrepeat="20 20" reflectance="0.1"/>
+    <material name="drone_body" rgba="0.15 0.15 0.2 1" specular="0.5" shininess="0.3"/>
+    <material name="drone_arm" rgba="0.1 0.1 0.1 1"/>
+    <material name="rotor_mat" rgba="0.2 0.2 0.2 0.8"/>
+  </asset>
+
+  <worldbody>
+    <!-- Ground plane -->
+    <geom name="ground" type="plane" size="100 100 0.1" material="ground_mat"/>
+    
+    <!-- Lighting -->
+    <light name="sun" pos="0 -2 5" dir="0 0.3 -1" diffuse="0.9 0.9 0.9" specular="0.3 0.3 0.3"/>
+    <light name="fill" pos="0 2 3" dir="0 -0.3 -1" diffuse="0.4 0.4 0.5" specular="0.1 0.1 0.1"/>
+
+    <!-- ==================== DRONE BODY ==================== -->
+    <body name="drone" pos="0 0 0" childclass="drone">
+      <freejoint name="root"/>
+      
+      <!-- Tracking camera -->
+      <camera name="track" pos="-1.5 0 0.5" xyaxes="0 -1 0 0.3 0 1" mode="trackcom"/>
+      <camera name="fpv" pos="0.1 0 0" xyaxes="0 -1 0 0 0 1" fovy="90"/>
+      
+      <!-- === Central body === -->
+      <!-- Main chassis - where the battery/electronics would be -->
+      <geom name="chassis" type="box" size="0.1 0.06 0.03" pos="0 0 0" 
+            material="drone_body" mass="1.0"/>
+      
+      <!-- Top cover (visual) -->
+      <geom name="cover" type="box" size="0.08 0.05 0.015" pos="0 0 0.04" 
+            material="drone_body" mass="0.1" class="visual"/>
+      
+      <!-- === Arms (X configuration) === -->
+      <!-- Front-Right arm -->
+      <geom name="arm_fr" type="capsule" fromto="0.05 -0.04 0 0.17 -0.17 0" 
+            size="0.012" material="drone_arm" mass="0.04"/>
+      <!-- Front-Left arm -->
+      <geom name="arm_fl" type="capsule" fromto="0.05 0.04 0 0.17 0.17 0" 
+            size="0.012" material="drone_arm" mass="0.04"/>
+      <!-- Rear-Right arm -->
+      <geom name="arm_rr" type="capsule" fromto="-0.05 -0.04 0 -0.17 -0.17 0" 
+            size="0.012" material="drone_arm" mass="0.04"/>
+      <!-- Rear-Left arm -->
+      <geom name="arm_rl" type="capsule" fromto="-0.05 0.04 0 -0.17 0.17 0" 
+            size="0.012" material="drone_arm" mass="0.04"/>
+      
+      <!-- === Motor housings === -->
+      <geom name="motor_fr" type="cylinder" size="0.02 0.015" pos="0.17 -0.17 0.01" 
+            rgba="0.3 0.1 0.1 1" mass="0.06"/>
+      <geom name="motor_fl" type="cylinder" size="0.02 0.015" pos="0.17 0.17 0.01" 
+            rgba="0.1 0.3 0.1 1" mass="0.06"/>
+      <geom name="motor_rl" type="cylinder" size="0.02 0.015" pos="-0.17 0.17 0.01" 
+            rgba="0.1 0.1 0.3 1" mass="0.06"/>
+      <geom name="motor_rr" type="cylinder" size="0.02 0.015" pos="-0.17 -0.17 0.01" 
+            rgba="0.3 0.3 0.1 1" mass="0.06"/>
+      
+      <!-- === Rotor discs (for visual + collision) === -->
+      <geom name="rotor_fr" type="cylinder" size="0.11 0.006" pos="0.17 -0.17 0.03" 
+            class="rotor" material="rotor_mat" mass="0.03"/>
+      <geom name="rotor_fl" type="cylinder" size="0.11 0.006" pos="0.17 0.17 0.03" 
+            class="rotor" material="rotor_mat" mass="0.03"/>
+      <geom name="rotor_rl" type="cylinder" size="0.11 0.006" pos="-0.17 0.17 0.03" 
+            class="rotor" material="rotor_mat" mass="0.03"/>
+      <geom name="rotor_rr" type="cylinder" size="0.11 0.006" pos="-0.17 -0.17 0.03" 
+            class="rotor" material="rotor_mat" mass="0.03"/>
+      
+      <!-- === Thrust application sites === -->
+      <site name="thrust_fr" pos="0.17 -0.17 0.03" size="0.01"/>
+      <site name="thrust_fl" pos="0.17 0.17 0.03" size="0.01"/>
+      <site name="thrust_rl" pos="-0.17 0.17 0.03" size="0.01"/>
+      <site name="thrust_rr" pos="-0.17 -0.17 0.03" size="0.01"/>
+      
+      <!-- === IMU site (center of mass) === -->
+      <site name="imu" pos="0 0 0" size="0.015" rgba="1 0 0 0.5"/>
+      
+      <!-- === Landing gear === -->
+      <geom name="leg_fr" type="sphere" size="0.018" pos="0.12 -0.12 -0.06" mass="0.01"/>
+      <geom name="leg_fl" type="sphere" size="0.018" pos="0.12 0.12 -0.06" mass="0.01"/>
+      <geom name="leg_rl" type="sphere" size="0.018" pos="-0.12 0.12 -0.06" mass="0.01"/>
+      <geom name="leg_rr" type="sphere" size="0.018" pos="-0.12 -0.12 -0.06" mass="0.01"/>
+      
+      <!-- Front direction indicator (visual only) -->
+      <geom name="front_indicator" type="box" size="0.02 0.005 0.005" pos="0.12 0 0.04" 
+            rgba="1 0.3 0 1" class="visual"/>
+    </body>
+
+    <!-- ==================== OBSTACLES (for path planning tests) ==================== -->
+    <!-- Uncomment these for testing obstacle avoidance -->
+    <!--
+    <body name="obstacle_1" pos="3 0 1">
+      <geom type="box" size="0.5 0.5 1" rgba="0.8 0.2 0.2 0.7"/>
+    </body>
+    <body name="obstacle_2" pos="2 2 0.75">
+      <geom type="cylinder" size="0.3 0.75" rgba="0.2 0.8 0.2 0.7"/>
+    </body>
+    -->
+
+    <!-- position marker -->
+    <body name="target_marker" mocap="true" pos="0 0 1">
+      <!-- Transparent green box -->
+      <geom name="target_box" type="box" size="0.15 0.15 0.15" 
+            rgba="0.2 1 0.2 0.4" contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- ==================== LANDING ZONE MARKER ==================== -->
+    <!-- <body name="landing_zone" pos="5 5 0.001">
+      <geom type="cylinder" size="0.5 0.001" rgba="0.2 0.6 0.2 0.5" contype="0" conaffinity="0"/>
+    </body> -->
+
+  </worldbody>
+
+  <!-- ==================== ACTUATORS ==================== -->
+  <!--
+    Motor configuration (X layout, viewed from above):
+    
+         Front
+      FL (+) FR (-)      (+) = CCW rotation = negative yaw torque
+         \ /             (-) = CW rotation  = positive yaw torque
+          X
+         / \
+      RL (-) RR (+)
+         Back
+    
+    Gear format: [Fx, Fy, Fz, Tx, Ty, Tz]
+    - Fz = 1: thrust along body Z (up)
+    - Tz = ±0.02: yaw torque (reaction torque from rotor)
+    
+    Control range [0, 12] gives hover at ~3.7 per motor for 1.5kg drone
+  -->
+  <actuator>
+    <motor name="motor_fr" site="thrust_fr" gear="0 0 1 0 0  0.02" ctrlrange="0 12"/>
+    <motor name="motor_fl" site="thrust_fl" gear="0 0 1 0 0 -0.02" ctrlrange="0 12"/>
+    <motor name="motor_rl" site="thrust_rl" gear="0 0 1 0 0  0.02" ctrlrange="0 12"/>
+    <motor name="motor_rr" site="thrust_rr" gear="0 0 1 0 0 -0.02" ctrlrange="0 12"/>
+  </actuator>
+
+  <!-- ==================== SENSORS ==================== -->
+  <!--
+    Sensor organization:
+    
+    FOR LOW-LEVEL RL (stability + trajectory tracking):
+    - Direct state access via d.qpos, d.qvel is faster
+    - But these sensors provide body-frame measurements
+    
+    FOR MID-LEVEL PATH PLANNING:
+    - World-frame position/velocity for obstacle detection
+    - Orientation for heading control
+  -->
+  <sensor>
+    <!-- Body-frame angular velocity (for stability) -->
+    <gyro name="gyro" site="imu"/>
+    
+    <!-- Body-frame linear acceleration (for disturbance detection) -->
+    <accelerometer name="accel" site="imu"/>
+    
+    <!-- Orientation as quaternion [w, x, y, z] -->
+    <framequat name="orientation" objtype="site" objname="imu"/>
+    
+    <!-- World-frame position -->
+    <framepos name="position" objtype="site" objname="imu"/>
+    
+    <!-- World-frame linear velocity -->
+    <framelinvel name="linear_velocity" objtype="site" objname="imu"/>
+    
+    <!-- World-frame angular velocity -->
+    <frameangvel name="angular_velocity" objtype="site" objname="imu"/>
+  </sensor>
+
+  <!-- ==================== KEYFRAMES ==================== -->
+  <keyframe>
+    <!-- Hover state: drone at 1m altitude, level, all motors at hover thrust -->
+    <!-- qpos: [x, y, z, qw, qx, qy, qz] for freejoint -->
+    <!-- Hover thrust per motor ≈ (mass * g) / 4 = (1.5 * 9.81) / 4 ≈ 4.08 -->
+    <key name="hover" qpos="0 0 1 1 0 0 0" ctrl="4.08 4.08 4.08 4.08"/>
+    
+    <!-- Ground start -->
+    <key name="ground" qpos="0 0 0.1 1 0 0 0" ctrl="0 0 0 0"/>
+    
+    <!-- Tilted (for recovery training) -->
+    <key name="tilted" qpos="0 0 1 0.966 0.259 0 0" ctrl="4.08 4.08 4.08 4.08"/>
+  </keyframe>
+
+</mujoco>

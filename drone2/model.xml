@@ -52,7 +52,7 @@
       <freejoint name="root"/>
       
       <!-- Tracking camera -->
-      <camera name="track" pos="-1.5 0 0.5" xyaxes="0 -1 0 0.3 0 1" mode="trackcom"/>
+      <camera name="track" pos="-2 0 0.5" xyaxes="0 -1 0 0 0 1" mode="trackcom"/>
       <camera name="fpv" pos="0.1 0 0" xyaxes="0 -1 0 0 0 1" fovy="90"/>
       
       <!-- === Central body === -->
